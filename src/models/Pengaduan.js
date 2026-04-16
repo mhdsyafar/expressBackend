@@ -30,6 +30,10 @@ const Pengaduan = sequelize.define('Pengaduan', {
   status: {
     type: DataTypes.ENUM('diajukan', 'diproses', 'selesai', 'ditolak'),
     defaultValue: 'diajukan'
+  },
+  kelas_saat_pengaduan: {
+    type: DataTypes.STRING(10),
+    allowNull: true
   }
 }, {
   tableName: 'pengaduan',

@@ -5,7 +5,8 @@ const { Op } = require('sequelize');
 const createPengaduan = async (req, res) => {
   try {
     const orangtua = await Orangtua.findOne({
-      where: { id_user: req.user.id_user }
+      where: { id_user: req.user.id_user },
+      include: [{ model: Siswa, attributes: ['kelas'] }]
     });
 
     if (!orangtua) {
@@ -15,9 +16,13 @@ const createPengaduan = async (req, res) => {
       });
     }
 
+    // Simpan kelas saat pengaduan dibuat agar tidak ikut berubah saat siswa pindah kelas
+    const kelasSaatIni = orangtua.Siswa ? orangtua.Siswa.kelas : orangtua.kelas;
+
     const pengaduan = await Pengaduan.create({
       ...req.body,
-      id_orangtua: orangtua.id_orangtua
+      id_orangtua: orangtua.id_orangtua,
+      kelas_saat_pengaduan: kelasSaatIni
     });
 
     // Create initial status history
@@ -61,22 +66,15 @@ const getAllPengaduan = async (req, res) => {
       }
     }
     
-    // For guru users (role 2), only show complaints from orangtua in their kelas
+    // For guru users (role 2), only show complaints where kelas_saat_pengaduan matches guru's kelas
+    // This ensures old complaints stay with the original class teacher even after a student changes classes
     if (req.user.id_role === 2) {
       const guru = await Guru.findOne({
         where: { id_user: req.user.id_user }
       });
       
       if (guru && guru.kelas) {
-        // Langsung cari orangtua yang kelasnya sama dengan guru
-        const orangtuaList = await Orangtua.findAll({
-          where: { kelas: guru.kelas },
-          attributes: ['id_orangtua']
-        });
-        
-        where.id_orangtua = {
-          [Op.in]: orangtuaList.map(o => o.id_orangtua)
-        };
+        where.kelas_saat_pengaduan = guru.kelas;
       }
     }
     
