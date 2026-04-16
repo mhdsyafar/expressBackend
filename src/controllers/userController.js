@@ -61,12 +61,44 @@ const updateUser = async (req, res) => {
         message: 'User not found'
       });
     }
+
+    // Pisahkan field guru (nip, kelas) dari field user
+    const { nip, kelas, ...userData } = req.body;
     
-    await user.update(req.body);
+    await user.update(userData);
+
+    // Jika role guru (id_role = 2), update juga tabel guru
+    const currentRole = userData.id_role || user.id_role;
+    if (currentRole === 2) {
+      const guru = await Guru.findOne({ where: { id_user: user.id_user } });
+      if (guru) {
+        // Update guru yang sudah ada
+        const guruUpdate = {};
+        if (nip !== undefined) guruUpdate.nip = nip;
+        if (kelas !== undefined) guruUpdate.kelas = kelas || null;
+        await guru.update(guruUpdate);
+      } else if (nip) {
+        // Buat record guru baru jika belum ada
+        await Guru.create({
+          id_user: user.id_user,
+          nip: nip,
+          kelas: kelas || null
+        });
+      }
+    }
+
+    // Ambil data user lengkap dengan relasi guru untuk response
+    const updatedUser = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['password'] },
+      include: [
+        { model: Orangtua, include: [Siswa] },
+        { model: Guru }
+      ]
+    });
     
     res.json({
       success: true,
-      data: user
+      data: updatedUser
     });
   } catch (error) {
     res.status(500).json({
