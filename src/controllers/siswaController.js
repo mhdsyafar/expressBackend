@@ -77,11 +77,21 @@ exports.updateSiswa = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Siswa tidak ditemukan' });
     }
 
+    const previousKelas = siswa.kelas;
+
     await siswa.update({
       nama_siswa: nama_siswa || siswa.nama_siswa,
       kelas: kelas || siswa.kelas,
       tahun_ajaran: tahun_ajaran || siswa.tahun_ajaran
     });
+
+    // Update parent's class to match student's new class
+    if (kelas && kelas !== previousKelas) {
+      await Orangtua.update(
+        { kelas: kelas },
+        { where: { id_siswa: req.params.id } }
+      );
+    }
 
     res.json({ success: true, data: siswa });
   } catch (error) {

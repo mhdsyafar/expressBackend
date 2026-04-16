@@ -65,12 +65,16 @@ const createOrangtua = async (req, res) => {
       status: 'aktif'
     }, { transaction: t });
     
+    // Find the student to get the user's class
+    const siswa = await Siswa.findByPk(id_siswa);
+    const kelasSiswa = siswa ? siswa.kelas : null;
+
     // Create orangtua profile
     const orangtua = await Orangtua.create({
       id_user: user.id_user,
       id_siswa,
       hubungan,
-      kelas
+      kelas: kelasSiswa
     }, { transaction: t });
     
     await t.commit();
@@ -120,9 +124,16 @@ const updateOrangtua = async (req, res) => {
     await orangtua.User.update(userUpdate, { transaction: t });
     
     const orangtuaUpdate = {};
-    if (id_siswa) orangtuaUpdate.id_siswa = id_siswa;
+    if (id_siswa) {
+      orangtuaUpdate.id_siswa = id_siswa;
+      // Fetch the class of the new student
+      const siswa = await Siswa.findByPk(id_siswa);
+      if (siswa) {
+        orangtuaUpdate.kelas = siswa.kelas;
+      }
+    }
     if (hubungan) orangtuaUpdate.hubungan = hubungan;
-    if (kelas) orangtuaUpdate.kelas = kelas;
+    if (kelas && !id_siswa) orangtuaUpdate.kelas = kelas;
     
     await orangtua.update(orangtuaUpdate, { transaction: t });
     
