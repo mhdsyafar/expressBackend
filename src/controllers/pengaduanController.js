@@ -19,10 +19,20 @@ const createPengaduan = async (req, res) => {
     // Simpan kelas saat pengaduan dibuat agar tidak ikut berubah saat siswa pindah kelas
     const kelasSaatIni = orangtua.Siswa ? orangtua.Siswa.kelas : orangtua.kelas;
 
+    // Cari guru yang saat ini menangani kelas tersebut
+    let idGuruPenanggungJawab = null;
+    if (kelasSaatIni) {
+      const guruPenanggungJawab = await Guru.findOne({ where: { kelas: kelasSaatIni } });
+      if (guruPenanggungJawab) {
+        idGuruPenanggungJawab = guruPenanggungJawab.id_guru;
+      }
+    }
+
     const pengaduan = await Pengaduan.create({
       ...req.body,
       id_orangtua: orangtua.id_orangtua,
-      kelas_saat_pengaduan: kelasSaatIni
+      kelas_saat_pengaduan: kelasSaatIni,
+      id_guru_penanggung_jawab: idGuruPenanggungJawab
     });
 
     // Create initial status history
@@ -66,15 +76,15 @@ const getAllPengaduan = async (req, res) => {
       }
     }
     
-    // For guru users (role 2), only show complaints where kelas_saat_pengaduan matches guru's kelas
-    // This ensures old complaints stay with the original class teacher even after a student changes classes
+    // For guru users (role 2), only show complaints matching their strict id_guru assignment
+    // This ensures that if a teacher changes classes, they don't see the previous teacher's complaints for that new class
     if (req.user.id_role === 2) {
       const guru = await Guru.findOne({
         where: { id_user: req.user.id_user }
       });
       
-      if (guru && guru.kelas) {
-        where.kelas_saat_pengaduan = guru.kelas;
+      if (guru) {
+        where.id_guru_penanggung_jawab = guru.id_guru;
       }
     }
     

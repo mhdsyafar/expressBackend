@@ -31,8 +31,12 @@ const Pengaduan = sequelize.define('Pengaduan', {
     type: DataTypes.ENUM('diajukan', 'diproses', 'selesai', 'ditolak'),
     defaultValue: 'diajukan'
   },
-  kelas_saat_pengaduan: {
+   kelas_saat_pengaduan: {
     type: DataTypes.STRING(10),
+    allowNull: true
+  },
+  id_guru_penanggung_jawab: {
+    type: DataTypes.INTEGER,
     allowNull: true
   }
 }, {
